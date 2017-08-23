@@ -1,0 +1,8 @@
+trigger SeguradoTrigger on Segurado__c (after update) {
+
+	if( Trigger.isAfter && Trigger.isUpdate ) {
+		SeguradoTriggerHandler.processarSeguradoSuspenso();
+		SeguradoTriggerHandler.processarSeguradoAtivo();
+	} 
+
+}

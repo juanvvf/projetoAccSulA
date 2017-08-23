@@ -1,0 +1,154 @@
+@isTest
+private class SeguradoTriggerTest {
+	
+	@isTest 
+	public static List<SObject> cenarioTeste() {
+		PARAMETROS_CRM__c parametrosCRM = new PARAMETROS_CRM__c();
+		parametrosCRM.Name = 'Tipos Registro CRM';
+		parametrosCRM.VALOR__c = 'Pessoa,Pessoa_Fisica,Prospeccao_Pessoa_Fisica,Pessoa_Juridica,Prospect_Pessoa_Juridica';
+		parametrosCRM.GRUPO__c = 'Integracao CRM';
+		parametrosCRM.Descricao__c = 'Elenca os Tipos de Registros restritos ao CRM';
+		insert parametrosCRM;
+
+		Programa__c programa = new Programa__c();
+		programa.Name = 'Acc Teste';
+		programa.StatusPrograma__c = 'Ativo';
+		programa.DataInicio__c = Date.today().addMonths(-12);
+		programa.DataFim__c = Date.today().addMonths(12);
+		programa.QTD_IDADE_DE__c = 20;
+		programa.QTD_IDADE_ATE__c = 80;
+		programa.Justificativa__c = 'Justificativa Teste';
+		programa.ObjetivoPrograma__c = 'Objetivo Teste';
+		insert programa;
+
+		CadastroOrigemIndicacao__c origem = new CadastroOrigemIndicacao__c();
+		origem.Name = 'CLINICA';
+		origem.Status__c = 'Ativo';
+		insert origem;
+
+		Account contaPessoal = new Account();
+		contaPessoal.Name = 'Conta Teste';
+		contaPessoal.RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByName().get('Segurado').getRecordTypeId();
+		contaPessoal.NUM_CPF__C = '19565626645';
+		contaPessoal.IDC_SEXO__c = 'M';
+		insert contaPessoal;
+
+		Segurado__c segurado = new Segurado__c();
+		segurado.RecordTypeId = Schema.SObjectType.Segurado__c.getRecordTypeInfosByName().get('Titular').getRecordTypeId();
+		segurado.Name = '8888845114880002';
+		segurado.COD_CONTA_PESSOA__c = contaPessoal.Id;
+		segurado.COD_DV_BENEF__c = '0';
+		segurado.NME_BENEFICIARIO__c = 'Conta Teste';
+		segurado.NUM_CPF__c = '19565626645';
+		segurado.DAT_NASCIMENTO__c = Date.newInstance(1981, 9, 28);
+		segurado.DAT_NASCIMENTO__c = Date.newInstance(1981, 9, 28);
+		segurado.COD_STATUS_BENEF__c = 'Ativo';
+		segurado.FLG_BENEF_PADRAO__c = true;
+		insert segurado;
+
+		ElegivelPrograma__c programaElegivel = new ElegivelPrograma__c();
+		programaElegivel.StatusSeguradoPrograma__c = 'A1 - Elegível Ativo';
+		programaElegivel.Segurado_del__c = contaPessoal.Id;
+		programaElegivel.Programa__c = programa.Id;
+		programaElegivel.DataStatus__c = Date.today();
+		programaElegivel.OrigemIndicacao__c = origem.Id;
+		programaElegivel.DataSelecao__c = Date.today().addDays(-30);
+		programaElegivel.DataImportacao__c = Date.today().addDays(-30);
+		programaElegivel.FLG_ALT_INTER_COMPLEXO__c = true;
+		insert programaElegivel;
+
+
+		List<SObject> result = new List<SObject> {
+			programa,
+			origem,
+			contaPessoal,
+			segurado,
+			programaElegivel
+		};
+
+		return result;
+	}
+
+	@isTest static void testProcessarSeguradoSuspensoA1() {
+		List<SObject> cenario = cenarioTeste();
+
+		Segurado__c segurado = (Segurado__c) cenario.get(3);
+		ElegivelPrograma__c programaElegivel = (ElegivelPrograma__c) cenario.get(4);
+
+		Test.startTest();
+		segurado.COD_STATUS_BENEF__c = 'Suspenso';
+		update segurado;
+
+		programaElegivel = [Select Id, StatusSeguradoPrograma__c, StatusAnteriorSeguradoPrograma__c  from ElegivelPrograma__c where Id = :programaElegivel.Id];
+		System.assertEquals('E1 - Suspenso Temporariamente', programaElegivel.StatusSeguradoPrograma__c );
+		System.assertEquals('A1 - Elegível Ativo', programaElegivel.StatusAnteriorSeguradoPrograma__c);
+		
+		segurado.COD_STATUS_BENEF__c = 'Ativo';
+		update segurado;
+
+		programaElegivel = [Select Id, StatusSeguradoPrograma__c, StatusAnteriorSeguradoPrograma__c  from ElegivelPrograma__c where Id = :programaElegivel.Id];
+        system.debug('StatusAnteriorSeguradoPrograma__c 2 ' +programaElegivel.StatusAnteriorSeguradoPrograma__c);
+
+		System.assertEquals('A1 - Elegível Ativo', programaElegivel.StatusSeguradoPrograma__c );
+		System.assertEquals('E1 - Suspenso Temporariamente', programaElegivel.StatusAnteriorSeguradoPrograma__c);
+
+		//programaElegivel.StatusSeguradoPrograma__c = 'A1 - Elegível Ativo';
+		//update programaElegivel;
+		
+		//programaElegivel.StatusSeguradoPrograma__c = 'D10 - Pendente Troca de Prestador';
+		//update programaElegivel;
+
+		Test.stopTest();
+
+	}
+	
+	@isTest static void testProcessarSeguradoSuspensoD10() {
+		List<SObject> cenario = cenarioTeste();
+		Segurado__c segurado = (Segurado__c) cenario.get(3);
+		ElegivelPrograma__c programaElegivel = (ElegivelPrograma__c) cenario.get(4);
+
+		Test.startTest();
+		programaElegivel.StatusSeguradoPrograma__c = 'D10 - Pendente Troca de Prestador';
+		update programaElegivel;
+
+		segurado.COD_STATUS_BENEF__c = 'Suspenso';
+		update segurado;
+
+		programaElegivel = [Select Id, StatusSeguradoPrograma__c, StatusAnteriorSeguradoPrograma__c  from ElegivelPrograma__c where Id = :programaElegivel.Id];
+		System.assertEquals('E1 - Suspenso Temporariamente', programaElegivel.StatusSeguradoPrograma__c );
+		System.assertEquals('D10 - Pendente Troca de Prestador', programaElegivel.StatusAnteriorSeguradoPrograma__c);
+		
+
+		Test.stopTest();
+
+	}
+	
+	// ****************************************************************************
+
+
+
+
+	@isTest static void testProcessarSeguradoAtivoD10() {
+		List<SObject> cenario = cenarioTeste();
+		Segurado__c segurado = (Segurado__c) cenario.get(3);
+		ElegivelPrograma__c programaElegivel = (ElegivelPrograma__c) cenario.get(4);
+
+		Test.startTest();
+		programaElegivel.StatusSeguradoPrograma__c = 'D10 - Pendente Troca de Prestador';
+		update programaElegivel;
+		segurado.COD_STATUS_BENEF__c = 'Ativo';
+		update segurado;
+
+		programaElegivel = [Select Id, StatusSeguradoPrograma__c, StatusAnteriorSeguradoPrograma__c  from ElegivelPrograma__c where Id = :programaElegivel.Id];
+		System.assertEquals('A1 - Elegível Ativo', programaElegivel.StatusSeguradoPrograma__c );
+		System.assertEquals('D10 - Pendente Troca de Prestador', programaElegivel.StatusAnteriorSeguradoPrograma__c);
+		
+
+		Test.stopTest();
+
+	}
+
+
+
+	
+}

@@ -1,0 +1,77 @@
+public with sharing class SeguradoTriggerHandler {
+
+	public static Boolean ignoreHandler = false;
+
+	public static void processarSeguradoSuspenso() {
+System.debug('ACC Handler');		
+		List<Segurado__c> segurados = (List<Segurado__c>) Trigger.new;
+		Map<Id,Segurado__c> oldMap = (Map<Id,Segurado__c>) Trigger.oldMap;
+		
+
+		List<String> idsContas = new List<String>();
+		for( Segurado__c segurado : segurados ) {
+System.debug(segurado);			
+			if( segurado.COD_STATUS_BENEF__c == 'Suspenso' && oldMap.get( segurado.Id ).COD_STATUS_BENEF__c != 'Suspenso' ) {
+				idsContas.add( segurado.COD_CONTA_PESSOA__c );
+			}
+		}
+
+System.debug(idsContas);
+
+		Map<String,Account> mapaContas = new Map<String,Account>([Select Id, (Select Id, StatusSeguradoPrograma__c, StatusAnteriorSeguradoPrograma__c, FRM_StatusAnteriordoPrograma__c from Juncao_Programas_del__r) from Account where Id in :idsContas]);
+		List<ElegivelPrograma__c> programasElegiveisUpdate = new List<ElegivelPrograma__c>();		
+		for( Segurado__c segurado : segurados ) {
+			if( segurado.COD_STATUS_BENEF__c == 'Suspenso' && oldMap.get( segurado.Id ).COD_STATUS_BENEF__c != 'Suspenso' ) {
+System.debug(segurado.Id);				
+				List<ElegivelPrograma__c> programasElegiveis = mapaContas.get( segurado.COD_CONTA_PESSOA__c ).Juncao_Programas_del__r;
+System.debug(programasElegiveis);
+				for( ElegivelPrograma__c programaElegivel : programasElegiveis ) {
+					if( programaElegivel.StatusSeguradoPrograma__c == 'A1 - Elegível Ativo' ) {
+						programaElegivel.StatusAnteriorSeguradoPrograma__c = 'A1 - Elegível Ativo';
+						programaElegivel.StatusSeguradoPrograma__c = 'E1 - Suspenso Temporariamente';
+					} else if( programaElegivel.StatusSeguradoPrograma__c == 'D10 - Pendente Troca de Prestador' ) {
+						programaElegivel.StatusAnteriorSeguradoPrograma__c = 'D10 - Pendente Troca de Prestador';
+						programaElegivel.StatusSeguradoPrograma__c = 'E1 - Suspenso Temporariamente';
+					}
+
+				}	
+				programasElegiveisUpdate.addAll( programasElegiveis );
+			}
+		}
+
+		update programasElegiveisUpdate;
+	}
+
+	public static void processarSeguradoAtivo() {
+		List<Segurado__c> segurados = (List<Segurado__c>) Trigger.new;
+		Map<Id,Segurado__c> oldMap = (Map<Id,Segurado__c>) Trigger.oldMap;
+		
+
+		List<String> idsContas = new List<String>();
+		for( Segurado__c segurado : segurados ) {
+			if( segurado.COD_STATUS_BENEF__c == 'Ativo' && oldMap.get( segurado.Id ).COD_STATUS_BENEF__c != 'Ativo' ) {
+				idsContas.add( segurado.COD_CONTA_PESSOA__c );
+			}
+		}
+
+		Map<String,Account> mapaContas = new Map<String,Account>([Select Id, (Select Id, StatusSeguradoPrograma__c, StatusAnteriorSeguradoPrograma__c, FRM_StatusAnteriordoPrograma__c from Juncao_Programas_del__r) from Account where Id in :idsContas]);
+		List<ElegivelPrograma__c> programasElegiveisUpdate = new List<ElegivelPrograma__c>();		
+		for( Segurado__c segurado : segurados ) {
+			if( segurado.COD_STATUS_BENEF__c == 'Ativo' && oldMap.get( segurado.Id ).COD_STATUS_BENEF__c == 'Suspenso' ) {
+				List<ElegivelPrograma__c> programasElegiveis = mapaContas.get( segurado.COD_CONTA_PESSOA__c ).Juncao_Programas_del__r;
+				for( ElegivelPrograma__c programaElegivel : programasElegiveis ) {
+					if( programaElegivel.StatusAnteriorSeguradoPrograma__c != null ) {
+						String valorAnterior = programaElegivel.StatusSeguradoPrograma__c;
+						String valorAtual = programaElegivel.StatusAnteriorSeguradoPrograma__c;
+						programaElegivel.StatusSeguradoPrograma__c = valorAtual;
+						programaElegivel.StatusAnteriorSeguradoPrograma__c = valorAnterior;
+					}
+
+				}	
+				programasElegiveisUpdate.addAll( programasElegiveis );
+			}
+		}
+
+		update programasElegiveisUpdate;
+	}
+}

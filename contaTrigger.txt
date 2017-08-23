@@ -1,0 +1,17 @@
+trigger contaTrigger on Account (before insert, before update) {
+
+
+	if(trigger.isBefore){ 
+		if(trigger.isInsert) {
+		contaTriggerBO instContaTriggerBO = new contaTriggerBO(trigger.new);
+		
+		}
+
+		if(trigger.isUpdate)	{
+		contaTriggerBO atualizaPhonesNull = new contaTriggerBO(trigger.new);
+		contaTriggerBO atualizarAnnualRevenue = new contaTriggerBO(trigger.new);
+	    }
+
+
+    }
+}

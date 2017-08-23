@@ -1,0 +1,23 @@
+	
+	// Anonimmos enter apex code...
+	
+		deve-se fazer o KEYSET para preencher o OLDMAP
+
+List<Account> listaContasAnnualRevenue  = [Select Id, Name, Phone, NumberOfEmployees, AnnualRevenue from account where NumberOfEmployees = 5];
+Map<Id, Account> accMap = new Map<Id, Account>();
+
+for(Account acc : listaContasAnnualRevenue) {
+    accMap.put(acc.Id, acc);
+}
+
+for(Id i : accMap.keyset()){
+    accMap.get(i).AnnualRevenue = 5000;
+   }
+System.debug('MAPA chek = ' + accMap);
+
+for(Account act : listaContasAnnualRevenue ){
+    if(act.AnnualRevenue == 5){
+        act.AnnualRevenue = 110000 ;
+    }
+}
+Database.update(listaContasAnnualRevenue);

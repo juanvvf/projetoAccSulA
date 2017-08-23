@@ -1,0 +1,114 @@
+﻿1. Criar uma trigger no objeto a sua escolha;
+2. criar uma classe apex para gerenciar a logica da trigger;
+3. Testar um insert onde a classe deverá desempenhar alguma lógica (fica a seu criterio);
+4. Testar um update usando o trigger.oldMap para verificar se houve mudança no atributo da conta a sua escolha;
+
+trigger AccountTrigger on Account (before insert, before update) {
+    
+    if(trigger.isBefore) {
+        if(trigger.isInsert) {
+            AccountTriggerBO accTriggerBO = new AccountTriggerBO(trigger.new);
+        }
+        
+        if(trigger.isUpdate) {
+            AccountTriggerBO accTriggerBO = new AccountTriggerBO(trigger.oldMap, trigger.new);
+        }
+    }
+    
+}
+
+************************************************************************************************
+
+public class AccountTriggerBO {
+    	
+	// faço uma lista com o que eu preciso/for trabalhar
+    private List<Account> accListNew;	
+	
+	//mapa do tipo chave valor para armazenar/comparar se houve alterações no objeto
+    private Map<Id, Account> oldAccountsMap;
+    	
+    public AccountTriggerBO(List<Account> accListParam) {
+        this.accListNew = accListParam;
+        checkPhoneNumber();
+    }
+    
+    public AccountTriggerBO(Map<Id, Account> oldAccountsMap, List<Account> accListParam) {
+        this.oldAccountsMap = oldAccountsMap;
+        this.accListNew = accListParam;
+        checkPhoneIsChanged();
+    }
+    
+    private void checkPhoneNumber() {
+        for(Account acc : this.accListNew) {
+            if(acc.Phone == null && acc.Name.equals('teste 1')) {
+                acc.Phone = '7897-4564';
+            } else {
+                acc.Phone = '4566-1231';
+            }
+        }
+    }
+    
+    private void checkPhoneIsChanged() {
+        for(Account acc : this.accListNew) {
+            if(this.oldAccountsMap.get(acc.Id).Phone != acc.Phone) {
+                System.debug('TELEFONE FOI ALTERADO!');
+            }
+        }
+    }
+    
+}
+-------------------------------------------------------------------------
+/*
+Account contaDiego = new Account(Name = 'Diego Jordão Tenório Maranhão');
+Database.insert(contaDiego);
+
+List<Account> accList = [SELECT Id, Name FROM Account];
+
+Map<Id, Account> accMap = new Map<Id, Account>();
+
+for(Account acc : accList) {
+    accMap.put(acc.Id, acc);
+}
+
+for(Id i : accMap.keyset()) {
+    accMap.get(i).Name += ' --> 123';
+}
+
+System.debug('MAPA: ' + accMap);
+
+for(Account conta : trigger.new) {
+    if(trigger.oldMap.get(conta.Id).Name != conta.Name) {
+        //to do
+    }
+}
+*/
+-------------------------------------------------------------------
+List<Account> accList = new List<Account>();
+
+Account contaDiego = new Account(Name = 'teste 1');
+Database.insert(contaDiego);
+
+Account contaDiego1 = new Account(Name = 'teste 2');
+Database.insert(contaDiego1);
+
+accList.add(contaDiego);
+accList.add(contaDiego1);
+
+Database.insert(accList);
+------------------------------------------------------------------
+List<Account> accList = [SELECT Id, 
+                         Name, 
+                         Phone 
+                         FROM Account
+                         WHERE Name = 'teste 1'
+                         OR Name = 'teste 2'];
+
+for(Account acc : accList) {
+    if(acc.Name.equals('teste 1')) {
+        acc.Phone = '1111-2222';    
+    } else {
+        acc.Phone = '3333-4444';
+    }    
+}
+
+Database.update(accList);

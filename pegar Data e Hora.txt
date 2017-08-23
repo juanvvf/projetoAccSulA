@@ -1,0 +1,2 @@
+Datetime now = System.now();
+System.debug('hora : ' + now);
