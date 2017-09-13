@@ -8,3 +8,4 @@
 
 5- fazer um merge de dois campos
 
+testando alterações no git e vou usar o pull pra ver se atualiza
