@@ -1,0 +1,10 @@
+1- dar retrive de duas classes qualquer
+
+2- dar retrive de duas visualforces
+
+3- retrive de qualquer picklist que seja do algum objeto 
+ 
+4- cria um novo playground e passa para ele o que eu baixei 
+
+5- fazer um merge de dois campos
+
